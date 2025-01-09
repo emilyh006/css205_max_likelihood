@@ -1,0 +1,23 @@
+---
+title: "PS01 by Emily Han"
+output: html_document
+date: "Sys.date()"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 2. Monte Carlo intergration 
+```{r}
+
+answer <- exp(-5)*sin(5) - exp(-2)
+
+
+
+f <- function(x) {exp(-x) * sin(x)}
+integrate(f, 2, 5)
+```
+
+
+
