@@ -6,18 +6,79 @@ date: "Sys.date()"
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+
 ```
 
-## 2. Monte Carlo intergration 
+
+
+## 1. Univariate displays & sampling distributions 
+
+### 1a: Plotting the histograms
+
 ```{r}
 
-answer <- exp(-5)*sin(5) - exp(-2)
+n <- c(10, 100, 1000)
+iteration <- c(10, 100, 1000)
 
 
 
+for (i in iteration) {
+  for (j in n) {
+    x <- replicate(i, rnorm(n, mean = 10, sd = 1))
+    title = paste("Histogram for N =", j, "S =", i) 
+    plt = hist(x, breaks = 30, xlim = c(8,12), yaxt = "n", ylab = NULL, main = title)
+    abline(v = 10, lwd = 3)
+    plt
+  }
+}
+```
+
+### 1b: 
+
+
+
+## 2. Monte Carlo intergration 
+
+Approximating the integral using simulation & checking the answering
+```{r}
 f <- function(x) {exp(-x) * sin(x)}
+
+sam_5_2 <- runif(100000,2,5)
+
+result <- f(sam_5_2)
+
+answer <- 3 * mean(result)
+answer
+
 integrate(f, 2, 5)
 ```
+
+## 3. Systematic and stochastic components
+
+
+
+```{r}
+
+```
+
+
+## 4. OLS in matrix form
+
+
+Write an R function to perform an OLS regression using matrices and vectors. Your function should take take two inputs: a vector of the dependent variable and a matrix of explanatory variables. Do not use any pre-programmed functions. You will regress the effective number of legislative parties (enps) on the number of effective ethnic groups (eneth), the log of median district magnitude electoral district magnitude (ml), and the multiplicative interaction between the two. Report a table of the regression parameter estimates and their standard errors. Don’t forget the constant!
+
+
+```{r}
+library(haven)
+
+
+
+
+```
+
+
+
 
 
 
