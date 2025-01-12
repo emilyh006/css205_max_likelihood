@@ -10,9 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-
-
-## 1. Univariate displays & sampling distributions 
+## 1. Univariate displays & sampling distributions
 
 ### 1a: Plotting the histograms
 
@@ -34,13 +32,12 @@ for (i in iteration) {
 }
 ```
 
-### 1b: 
+### 1b:
 
-
-
-## 2. Monte Carlo intergration 
+## 2. Monte Carlo intergration
 
 Approximating the integral using simulation & checking the answering
+
 ```{r}
 f <- function(x) {exp(-x) * sin(x)}
 
@@ -56,18 +53,64 @@ integrate(f, 2, 5)
 
 ## 3. Systematic and stochastic components
 
+### 3a. Rephrasing the model in terms of its systematic and stochastic components.
+
+
+
+Rephrase this model in terms of its systematic and stochastic components.
+
+
+$Y_i = \beta_0 + \beta_iX_i + \epsilon_i$
+
+
+Systematic Component
+
+$\theta_i = \beta_0 + \beta_1X_1 + \beta_2X_2 + \beta_3X_3$
+
+Stochastic Component
+
+$Y_i = f_N(y; \theta_i:\mu = 0, \sigma^2 = 1.5)$
+
+
+ Type `set.seed(10825)`.  Then combine the $\mathbf{X}$ matrix you just downloaded with the linear model you described in part (a) to generate `n` simulated $y$ values.  Becareful with the constant!  Then regress these simulated $y$ values on $\mathbf{X}$.  Display the results in a regression table.  
 
 
 ```{r}
-
+set.seed(10825)
 ```
+
+```{r}
+
+beta <- matrix(c(0.5, -2.2, 1), nrow = 1000, ncol = 3, byrow = T)
+sigma <- sqrt(1.5)
+
+dat <- read.csv("./data/xmat.csv")
+n <- dim(dat) 
+X <- data.matrix(dat)
+
+
+
+
+e <- rnorm(1000, mean = 0, sd = sigma)
+
+for (i in 1:1000){
+  sim_y <- rowSums(beta*X) +1 + e[1]
+}
+
+dat$y <- sim_y 
+
+fit <- lm(y ~ X1 + X2 + X3, data = dat)
+summary(fit)
+```
+
+
+
+
 
 
 ## 4. OLS in matrix form
 
-
 Write an R function to perform an OLS regression using matrices and vectors. Your function should take take two inputs: a vector of the dependent variable and a matrix of explanatory variables. Do not use any pre-programmed functions. You will regress the effective number of legislative parties (enps) on the number of effective ethnic groups (eneth), the log of median district magnitude electoral district magnitude (ml), and the multiplicative interaction between the two. Report a table of the regression parameter estimates and their standard errors. Don’t forget the constant!
-
 
 ```{r}
 library(haven)
@@ -76,9 +119,3 @@ library(haven)
 
 
 ```
-
-
-
-
-
-
