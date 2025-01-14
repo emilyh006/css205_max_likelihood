@@ -1,6 +1,8 @@
 ---
 title: "PS01 by Emily Han"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 date: "Sys.date()"
 ---
 
@@ -12,42 +14,66 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 1. Univariate displays & sampling distributions
 
+Let n denote the size of a simple random sample taken from a large population and let s be the number of times samples of size n are drawn.
+
 ### 1a: Plotting the histograms
+
+Write an R program that will replicate Figure 1.2 from the Ward & Ahlquist text. Create a matrix of nine such histograms which illustrate the effect of changing $s \in {10, 100, 1000}$ and $n \in {10, 100, 1000}$. Put the horizontal axis on the same scale for all plots. HINT: try constructing loops using for, replicate, and sample.
 
 ```{r}
 
+#Define parameters 
+population <- rnorm(10000, mean = 10, sd =1)
 n <- c(10, 100, 1000)
 iteration <- c(10, 100, 1000)
+
+
+#For creating matrix of graphs 
+par(mfrow = c(3,3))
 
 
 
 for (i in iteration) {
   for (j in n) {
-    x <- replicate(i, rnorm(n, mean = 10, sd = 1))
+    sam_mean <- replicate(i, mean(sample(population, j)))
     title = paste("Histogram for N =", j, "S =", i) 
-    plt = hist(x, breaks = 30, xlim = c(8,12), yaxt = "n", ylab = NULL, main = title)
+    plt = hist(sam_mean, breaks = 20, xlim = c(9, 11),yaxt = "n", xlab = NULL, ylab = NULL, main = title)
     abline(v = 10, lwd = 3)
     plt
   }
 }
 ```
 
-### 1b:
+### 1b: Interpretation
 
-## 2. Monte Carlo intergration
+What does this matrix of histograms say about the efficiency of sampling when we consider the number of groups versus the number of units within a group? What is the key assumption or attribute of the situation here that underpins this lesson?
+
+The matrix of histogram suggests that sampling with higher amount more units (size) within a group is more efficient than sampling large number of groups. The key attribute of this situation suggest having more units within a group bring the mean of the samples closer to the true population more efficiently due to less variability in the data.
+
+
+## 2. Monte Carlo integration
 
 Approximating the integral using simulation & checking the answering
 
+$E[f(X)] = \frac{1}{b - a}∫_{a}^{b} f(x)  dx$
+
+$∫_{a}^{b} f(x)  dx = E[f(X)] * (b-a)$
+
 ```{r}
+# Define the function 
 f <- function(x) {exp(-x) * sin(x)}
 
+
+# Taking large sample of values between 2 to 5  
 sam_5_2 <- runif(100000,2,5)
 
+# Save the results after plugging in the values 
 result <- f(sam_5_2)
 
-answer <- 3 * mean(result)
-answer
+# Multiple with 3(mean of 2-5)
+approximate_answer <- 3 * mean(result)
 
+print(approximate_answer)
 integrate(f, 2, 5)
 ```
 
@@ -55,67 +81,150 @@ integrate(f, 2, 5)
 
 ### 3a. Rephrasing the model in terms of its systematic and stochastic components.
 
-
-
 Rephrase this model in terms of its systematic and stochastic components.
-
 
 $Y_i = \beta_0 + \beta_iX_i + \epsilon_i$
 
-
-Systematic Component
-
-$\theta_i = \beta_0 + \beta_1X_1 + \beta_2X_2 + \beta_3X_3$
+Systematic Component\
+$\theta_i = 1 + 0.5x_{i1} - 2.2x_{i2} + x_{i3}$
 
 Stochastic Component
 
-$Y_i = f_N(y; \theta_i:\mu = 0, \sigma^2 = 1.5)$
+$Y_i \sim f_N(1 + 0.5x_{i1} - 2.2x_{i2} + x_{i3}, \epsilon \sim \mu = 0, \sigma^2 = 1.5)$
 
+### b. Download `xmat.csv` from the course canvas site and load it into your `R` session.
 
- Type `set.seed(10825)`.  Then combine the $\mathbf{X}$ matrix you just downloaded with the linear model you described in part (a) to generate `n` simulated $y$ values.  Becareful with the constant!  Then regress these simulated $y$ values on $\mathbf{X}$.  Display the results in a regression table.  
+i.  What are the dimensions of the $\mathbf{X}$ matrix you just downloaded? Call this number `n`.
 
+    n = 1000 x 3
+
+ii. Type `set.seed(10825)`. Then combine the $\mathbf{X}$ matrix you just downloaded with the linear model you described in part (a) to generate `n` simulated $y$ values. Becareful with the constant! Then regress these simulated $y$ values on $\mathbf{X}$. Display the results in a regression table.
 
 ```{r}
 set.seed(10825)
 ```
 
 ```{r}
-
-beta <- matrix(c(0.5, -2.2, 1), nrow = 1000, ncol = 3, byrow = T)
-sigma <- sqrt(1.5)
-
 dat <- read.csv("./data/xmat.csv")
-n <- dim(dat) 
-X <- data.matrix(dat)
+
+Xi <- data.matrix(dat)
+
+e <- rnorm(1000, mean = 0, sd = sqrt(1.5))
+
+yi <- 0.5*Xi[,1] - 2.2*Xi[,2] + Xi[,3] + e + 1
 
 
-
-
-e <- rnorm(1000, mean = 0, sd = sigma)
-
-for (i in 1:1000){
-  sim_y <- rowSums(beta*X) +1 + e[1]
-}
-
-dat$y <- sim_y 
-
-fit <- lm(y ~ X1 + X2 + X3, data = dat)
-summary(fit)
+regress <- lm(yi ~ Xi[,1] + Xi[,2] + Xi[,3])
+summary(regress)
 ```
-
-
-
-
-
 
 ## 4. OLS in matrix form
 
-Write an R function to perform an OLS regression using matrices and vectors. Your function should take take two inputs: a vector of the dependent variable and a matrix of explanatory variables. Do not use any pre-programmed functions. You will regress the effective number of legislative parties (enps) on the number of effective ethnic groups (eneth), the log of median district magnitude electoral district magnitude (ml), and the multiplicative interaction between the two. Report a table of the regression parameter estimates and their standard errors. Don’t forget the constant!
+### a & b
+
+a.  Write an R function to perform an OLS regression using matrices and vectors.
+
+Your function should take take two inputs: a vector of the dependent variable and a matrix of explanatory variables. Do not use any pre-programmed functions. You will regress the effective number of legislative parties (enps) on the number of effective ethnic groups (eneth), the log of median district magnitude electoral district magnitude (ml), and the multiplicative interaction between the two. Report a table of the regression parameter estimates and their standard errors. Don’t forget the constant!
+
+b.  Make a Normal quantile comparison plot of the residuals from your regression and describe what it says in fewer than three sentences.
+
+Calculating $\hat{\beta}$
+
+-   $\hat{\beta} = (X'X)^{-1} X'Y$
+
+-   $Y$ = `enps`
+
+-   $X$ = `constant`, `eneth`, `ml`, `eneth*ml`
+
+Calculating Standard Error
+
+-   $\hat{\epsilon} = y - X \hat{\beta}$
+
+-   $RSS = \hat{\epsilon}' \hat{\epsilon}$
+
+-   $Var(\hat{\beta}) = \frac{1}{(n-k)} *RSS *(X'X)^{-1}$
 
 ```{r}
-library(haven)
+library(foreign)
+
+dat4 <- read.dta("./data/coxappend.dta")
+dat4$log_ml <- log(dat4$ml)
+
+
+#Create X and Y matrices
+X4 <- as.matrix(cbind(1, dat4$eneth, dat4$log_ml, dat4$eneth * dat4$log_ml))
+Y4 <- as.matrix((dat4$enps))
+  
+
+ols <- function (X,Y) {
+
+  # Calculate components to calculate beta_hat
+  X_t <- t(X)
+  X_inv <- solve(X_t %*% X)
+  X_t_Y <- X_t %*% Y
+  
+  # Calculate beta_hat
+  beta_hat <- X_inv %*% X_t_Y
+  
+  # Calculate vector of residuals
+  error <- Y - (X %*% beta_hat)
+  res_sum_sqr <- as.matrix(t(error) %*% error)
+ 
+ 
+  # Calculate Variance-Covariance Matrix
+  VCV <- 1/(54-4) * as.numeric(res_sum_sqr) * X_inv
+ 
+  # Standard errors of the estimated coefficients
+  StdErr <- sqrt(diag(VCV))
+  
+  
+  # Label and organize results into a data frame
+  ols_table <- as.data.frame(cbind(beta_hat, StdErr))
+  colnames(ols_table) <- c('Estimate','Std. Error')
+  rownames(ols_table) <- c('(Intercept)','eneth','ml','eneth:ml')
+  
+  
+  ### b. Graphing Q-Q plot 
+  quartile_plot <- qqnorm(error, pch = 16)
+  qqline(error, datax = FALSE, distribution = qnorm,
+       probs = c(0.25, 0.75))
+  
+  
+  return(ols_table)
+  return(quartile_plot)
+}
+
+
+ols(X4, Y4)
+```
+
+The normal quantile comparison plot shows an increasing trend of the residuals which means that the model performs badly
+
+### c. Perform the same regression using the `lm()` command.
+
+```{r}
+mod <- lm(enps ~ eneth + log_ml + eneth * log_ml, data = dat4)
+summary(mod)
+```
+
+### d. Report the Residual-v.-fitted, Scale-location, and Residual-v.-leverage diagnostic plots for this regression
+
+
+```{r}
+par(mfrow = c(2,2))
+plot(mod)
+```
+
+### e. Based on these results, is this OLS regression an appropriate model for these data?
+
+In the residual vs fitted graph, slight downward curve might suggest non-linearity. In addition, the upward trend in both QQ plot and Scale-Location plot suggests heteroscedasticity as the cluster of the data become more sparse as the value increases. In addition, there are some outliers with large residuals that might be problematic; for example observation 10. If the model still shows similar trends suggesting  heteroscedasticity or non-linearity after addressing or removing the outliers, OLS regression might not be the appropriate model the data. 
 
 
 
 
+
+
+
+```{r}
+sessionInfo()
 ```
