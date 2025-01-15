@@ -222,6 +222,16 @@ plot(mod)
 
 In the residual vs fitted graph, slight downward curve might suggest non-linearity. In addition, the upward trend in both QQ plot and Scale-Location plot suggests heteroscedasticity as the cluster of the data become more sparse as the value increases. In addition, there are some outliers with large residuals that might be problematic; for example observation 10. If the model still shows similar trends suggesting heteroscedasticity or non-linearity after addressing or removing the outliers, OLS regression might not be the appropriate model the data.
 
+
+
+
+
+
+## Use of ChatGPT and other generative AI tools
+
+I certify that we did not use any LLM or generative AI tool in this assignment!
+
+
 ```{r}
 sessionInfo()
 ```
