@@ -3,7 +3,7 @@ title: "PS01 by Emily Han"
 output:
   pdf_document: default
   html_document: default
-date: "Sys.date()"
+date: "`r Sys.Date()`"
 ---
 
 ```{r setup, include=FALSE}
@@ -20,9 +20,9 @@ Let n denote the size of a simple random sample taken from a large population an
 
 Write an R program that will replicate Figure 1.2 from the Ward & Ahlquist text. Create a matrix of nine such histograms which illustrate the effect of changing $s \in {10, 100, 1000}$ and $n \in {10, 100, 1000}$. Put the horizontal axis on the same scale for all plots. HINT: try constructing loops using for, replicate, and sample.
 
-```{r}
 
-#Define parameters 
+```{r}
+# Define parameters 
 population <- rnorm(10000, mean = 10, sd =1)
 n <- c(10, 100, 1000)
 iteration <- c(10, 100, 1000)
@@ -31,13 +31,12 @@ iteration <- c(10, 100, 1000)
 #For creating matrix of graphs 
 par(mfrow = c(3,3))
 
-
-
 for (i in iteration) {
   for (j in n) {
     sam_mean <- replicate(i, mean(sample(population, j)))
     title = paste("Histogram for N =", j, "S =", i) 
-    plt = hist(sam_mean, breaks = 20, xlim = c(9, 11),yaxt = "n", xlab = NULL, ylab = NULL, main = title)
+    plt = hist(sam_mean, breaks = 20, xlim = c(9, 11),
+               yaxt = "n", xlab = NULL, ylab = NULL, main = title)
     abline(v = 10, lwd = 3)
     plt
   }
@@ -51,13 +50,15 @@ What does this matrix of histograms say about the efficiency of sampling when we
 The matrix of histogram suggests that sampling with higher amount more units (size) within a group is more efficient than sampling large number of groups. The key attribute of this situation suggest having more units within a group bring the mean of the samples closer to the true population more efficiently due to less variability in the data.
 
 
+---
+
 ## 2. Monte Carlo integration
 
 Approximating the integral using simulation & checking the answering
 
-$E[f(X)] = \frac{1}{b - a}∫_{a}^{b} f(x)  dx$
+$E[f(X)] = \frac{1}{b - a}\int_{a}^{b} f(x)  dx$
 
-$∫_{a}^{b} f(x)  dx = E[f(X)] * (b-a)$
+$\int_{a}^{b} f(x)  dx = E[f(X)] * (b-a)$
 
 ```{r}
 # Define the function 
@@ -76,6 +77,7 @@ approximate_answer <- 3 * mean(result)
 print(approximate_answer)
 integrate(f, 2, 5)
 ```
+---
 
 ## 3. Systematic and stochastic components
 
@@ -117,6 +119,8 @@ yi <- 0.5*Xi[,1] - 2.2*Xi[,2] + Xi[,3] + e + 1
 regress <- lm(yi ~ Xi[,1] + Xi[,2] + Xi[,3])
 summary(regress)
 ```
+
+---
 
 ## 4. OLS in matrix form
 
@@ -209,7 +213,6 @@ summary(mod)
 
 ### d. Report the Residual-v.-fitted, Scale-location, and Residual-v.-leverage diagnostic plots for this regression
 
-
 ```{r}
 par(mfrow = c(2,2))
 plot(mod)
@@ -217,13 +220,7 @@ plot(mod)
 
 ### e. Based on these results, is this OLS regression an appropriate model for these data?
 
-In the residual vs fitted graph, slight downward curve might suggest non-linearity. In addition, the upward trend in both QQ plot and Scale-Location plot suggests heteroscedasticity as the cluster of the data become more sparse as the value increases. In addition, there are some outliers with large residuals that might be problematic; for example observation 10. If the model still shows similar trends suggesting  heteroscedasticity or non-linearity after addressing or removing the outliers, OLS regression might not be the appropriate model the data. 
-
-
-
-
-
-
+In the residual vs fitted graph, slight downward curve might suggest non-linearity. In addition, the upward trend in both QQ plot and Scale-Location plot suggests heteroscedasticity as the cluster of the data become more sparse as the value increases. In addition, there are some outliers with large residuals that might be problematic; for example observation 10. If the model still shows similar trends suggesting heteroscedasticity or non-linearity after addressing or removing the outliers, OLS regression might not be the appropriate model the data.
 
 ```{r}
 sessionInfo()
