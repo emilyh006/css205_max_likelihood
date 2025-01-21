@@ -14,40 +14,30 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## 1. The exponential distribution
 
-The exponential probability density function is defined as: 𝑓𝑒(𝑥;𝜃)=𝜃exp(−𝜃𝑥).
+The exponential probability density function is defined as: $f_e(x; \theta) = \theta \exp(-\theta x)$.
 
+### 1a.
 
-### 1a. 
-Loosely speaking, the “support” of a random variable is the set of admissible values, or values that have positive probability. More formally, the support of a function is the subset of the function’s domain that are not mapped to zero. If 𝑋∼𝑓𝑒(𝑥;𝜃) what is the support of 𝑋?
-
+Loosely speaking, the “support” of a random variable is the set of admissible values, or values that have positive probability. More formally, the support of a function is the subset of the function’s domain that are not mapped to zero. If $X \sim f_e(x; \theta)$ what is the support of $X$?
 
 The support of the function is when $\theta > 0$.
 
+### 1b.
 
+Derive the log-likelihood for n independent observations under the probability model $f_e$.
 
-### 1b. 
+$$L(\theta; x_1, x_2,.., x_n) = \prod_{i=1}^n \theta e^{-\theta x_i}$$ $$ logL(\theta ;x) = nlog(\theta) - \theta \sum_{i=1}^{n} x_i$$
 
-Derive the log-likelihood for 𝑛independent observations under the probability model 𝑓𝑒.
+### 1c.
 
-$$L(\theta; x_1, x_2,.., x_n) = \prod_{i=1}^n \theta e^{-\theta x_i}$$
-$$ logL(\theta ;x) = nlog(\theta) - \theta \sum_{i=1}^{n} x_i$$
-
-
-### 1c. 
-c. Derive an analytic expression for 𝜃, the MLE.
+Derive an analytic expression for $\theta$, the MLE.
 
 $$\frac{d}{d\theta} \left( n \log(\theta) - \theta \sum_{i=1}^n x_i \right) 
-= \frac{n}{\theta} - \sum_{i=1}^n x_i$$
-$$\frac{n}{\theta} - \sum_{i=1}^n x_i =0$$
+= \frac{n}{\theta} - \sum_{i=1}^n x_i$$ $$\frac{n}{\theta} - \sum_{i=1}^n x_i =0$$
 
 $$\hat{\theta} = \frac{n}{\sum_{i=1}^n x_i}$$
 
-
-
-### 1d. 
-
-Type the following into R:
-
+### 1d.
 
 ```{r}
 library(formatR)
@@ -55,9 +45,9 @@ set.seed(5)
 x <- rexp(10000, 5)
 ```
 
+#### i.
 
-
-#### i. Program the exponential log likelihood function into R; call this function exp.ll.
+Program the exponential log likelihood function into R; call this function exp.ll.
 
 ```{r}
 exp.ll <- function(theta,x){
@@ -67,8 +57,9 @@ exp.ll <- function(theta,x){
 }
 ```
 
+#### ii.
 
-#### ii. Plot the log-likelihood as a function of 𝜃given x. Eyeballing the graph, what is the approximate value of the maximizer?
+Plot the log-likelihood as a function of $\theta$ given x. Eyeballing the graph, what is the approximate value of the maximizer?
 
 ```{r}
 theta_values <- seq(0.1, 6, length.out = 100)
@@ -78,11 +69,12 @@ log_ll_val <- exp.ll(theta_values, x)
 plot(theta_values,log_ll_val, xlab = "Theta Values", ylab = "Log Likelihood Values")
 
 ```
-The approximate value of the maximizer is 5.2. 
 
+The approximate value of the maximizer is 5.2.
 
-#### iii. 
-Calculate 𝜃̂ given x using the analytic result you derived in part (c).
+#### iii.
+
+Calculate $\hat{\theta}$ given x using the analytic result you derived in part (c).
 
 ```{r}
 mle <- function(i){
@@ -92,7 +84,13 @@ mle <- function(i){
 }
 
 theta_hat <- mle(x)
+```
 
+#### iv.
+
+Let $\tilde{\theta}$ = 6. Calculate the likelihood ratio for $\hat{\theta} \mid x$ and $\tilde{\theta} \mid x$.
+
+```{r}
 log_val1 <- exp.ll(theta_hat, x)
 log_val2 <- exp.ll(6, x)
 
@@ -100,14 +98,16 @@ log_val2 <- exp.ll(6, x)
 
 likelihood_ratio <- log_val1 - log_val2
 likelihood_ratio
-
 ```
 
+#### v.
+
+Calculate an approximation to $\hat{\theta}$ as well as the standard error around $\hat{\theta}$ using optim. Use 1 as your starting value. You will do this twice, once using the BFGS algorithm and once using SANN. Report the total computational time required for each.
+
+*Maximum Likelihood Estimation using BFGS*
 
 ```{r}
-
-
-# Maximum Likelihood Estimation using optim
+start1 <- Sys.time()
 mle.fit <- optim(
   par = c(1),              # Starting values for the parameters
   fn = exp.ll,             # Function to minimize (log-likelihood)
@@ -120,21 +120,46 @@ mle.fit <- optim(
   ),
   hessian = TRUE              # Return the Hessian matrix
 )
-
-# Check for convergence issues
-if (mle.fit$convergence != 0) {
-  print("WARNING: Convergence Problems; Try again!")
-}
+end1 <- Sys.time()
+tot_time1 <- end1 - start1
+print(paste("Total time for BFGS Method:", tot_time1))
 ```
+
 ```{r}
 mle.fit$par
-
 ```
 
+*Maximum Likelihood Estimation using SANN*
 
-# 2. Maximizing a multivariate function
+```{r}
+start2 <- Sys.time()
+mle.fit2 <- optim(
+  par = c(1),              # Starting values for the parameters
+  fn = exp.ll,             # Function to minimize (log-likelihood)
+  x = x,
+  method = "SANN",            # Optimization method (Simulated Annealing algorithm)
+  control = list(
+    trace = TRUE,             # Show optimization progress
+    maxit = 1000,             # Maximum number of iterations
+    fnscale = -1              # Negate the function to maximize instead of minimize
+  ),
+  hessian = TRUE              # Return the Hessian matrix
+)
+end2 <- Sys.time()
+tot_time2 <-  end2 - start2
+print(paste("Total time for SANN Method:", tot_time2))
+```
 
-a. Use the following code to implement and visualize this function. Just eye-balling it, at what values of 𝑥 and 𝑦 does it look like the function achieves a maximum? Use ChatGPT or a similar tool to walk you through the code if you do not understand what the code is doing.
+```{r}
+mle.fit2$par
+```
+
+## 2. Maximizing a multivariate function
+
+### 2a.
+
+Use the following code to implement and visualize this function. Just eye-balling it, at what values of $x$ and $y$ does it look like the function achieves a maximum? Use ChatGPT or a similar tool to walk you through the code if you do not understand what the code is doing.
+
 ```{r}
 mvn <- function(xy) {
     x <- xy[1]
@@ -153,15 +178,16 @@ grid$z <- apply(grid, 1, mvn)
 
 wireframe(z ~ x + y, data = grid, shade = TRUE, light.source = c(10, 0, 10), scales = list(arrows = FALSE))
 ```
-At x = 2 and 𝑦 = 1, it look like the function achieves a maximum. 
 
+It looks like the function achieves a maximum at x = 2 and y = 1.
 
-b. Use optim() to find the values (𝑥⋆,𝑦⋆) that maximize this joint density. Use c(1,0) as your starting values and method="BFGS". Then find the maximum again with the starting value `c(5,5), still using method="BFGS". Compare the performance of optim() for these two sets of starting values.
+### 2b.
 
+Use optim() to find the values $(x^\star, y^\star)$ that maximize this joint density. Use c(1,0) as your starting values and method="BFGS". Then find the maximum again with the starting value c(5,5), still using method="BFGS". Compare the performance of optim() for these two sets of starting values.
 
+*Maximum Likelihood Estimation using c(1,0) as starting value*
 
 ```{r}
-# Maximum Likelihood Estimation using optim
 mle.fit_b1 <- optim(
   par = c(1, 0),              # Starting values for the parameters
   fn = mvn,             # Function to minimize (log-likelihood)
@@ -173,19 +199,13 @@ mle.fit_b1 <- optim(
   ),
   hessian = TRUE              # Return the Hessian matrix
 )
-
-# Check for convergence issues
-if (mle.fit_b1$convergence != 0) {
-  print("WARNING: Convergence Problems; Try again!")
-}
 ```
-
 
 ```{r}
 mle.fit_b1$par
 ```
 
-
+*Maximum Likelihood Estimation using c(5,5) as starting value*
 
 ```{r}
 # Maximum Likelihood Estimation using optim
@@ -200,21 +220,15 @@ mle.fit_b2 <- optim(
   ),
   hessian = TRUE              # Return the Hessian matrix
 )
-
-# Check for convergence issues
-if (mle.fit_b2$convergence != 0) {
-  print("WARNING: Convergence Problems; Try again!")
-}
-
 ```
+
 ```{r}
 mle.fit_b2$par
 ```
 
+### 2c.
 
-
-c. Alter the provided R function so that it returns the (natural) logarithm of 𝑓(𝑥,𝑦). Alter the code to plot the log likelihood. Then repeat the two procedures you performed in section (b), only as applied to the log likelihood. Describe any differences in your results, and then provide a brief explanation for those differences.
-
+Alter the provided R function so that it returns the (natural) logarithm of $f(x, y)$ Alter the code to plot the log likelihood. Then repeat the two procedures you performed in section (b), only as applied to the log likelihood. Describe any differences in your results, and then provide a brief explanation for those differences.
 
 ```{r}
 mvn_log <- function(xy) {
@@ -233,7 +247,7 @@ grid$z <- apply(grid, 1, mvn_log)
 wireframe(z ~ x + y, data = grid, shade = TRUE, light.source = c(10, 0, 10), scales = list(arrows = FALSE))
 ```
 
-
+*Maximum Likelihood Estimation of log-function using c(1,0) as starting value*
 
 ```{r}
 # Maximum Likelihood Estimation using optim
@@ -249,19 +263,13 @@ mle.fit_b3 <- optim(
   hessian = TRUE              # Return the Hessian matrix
 )
 
-# Check for convergence issues
-if (mle.fit_b3$convergence != 0) {
-  print("WARNING: Convergence Problems; Try again!")
-}
-
-
 ```
 
 ```{r}
 mle.fit_b3$par
 ```
 
-
+*Maximum Likelihood Estimation of log-function using c(5,5) as starting value*
 
 ```{r}
 mle.fit_b4 <- optim(
@@ -276,36 +284,40 @@ mle.fit_b4 <- optim(
   hessian = TRUE              # Return the Hessian matrix
 )
 
-# Check for convergence issues
-if (mle.fit_b4$convergence != 0) {
-  print("WARNING: Convergence Problems; Try again!")
-}
-
 ```
+
 ```{r}
 mle.fit_b4$par
 ```
 
+When the c(1,0) was used as starting values, estimating maximum likelihood for both original functions and log function was successful since the starting point is close to the maximum. However, when c(5,5) was used as starting value, estimating maximum likelihood wasn't successful for the original function although it was successful for the log function.
 
-# 3. The normal variance
+In the original function, starting at c(5,5) places the optimizer start in the flat region and the optimizer struggles to find the direction of the maximum due minimal differences in slope of the function (gradient). On the other hand, the log function smooths the steep curvature and amplifies the gradients in flat regions without changing the maximum. Therefore, the optimizer was able to successfully navigate to the true maximum value even when the starting values was far.
 
-a. Derive 𝜎2ˆ, the MLE of the variance of the normal distribution. Hint: begin with the log-likelihood of the Normal distribution given in the text.
+## 3. The normal variance
 
-$$-2\log L = n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2}$$
-$$n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2}$$
+### 3a.
 
+Derive $\hat{\sigma}^2$, the MLE of the variance of the normal distribution. Hint: begin with the log-likelihood of the Normal distribution given in the text.
 
+Log-likelihood function of the Normal distribution [(1.4) from textbook]: $$-2 \log L =n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2}$$
 
-$$\frac{d}{d\sigma^2} \left( n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2} \right)$$
+Divide by -2 and take derivative: $\frac{\partial}{\partial \sigma^2} (-\frac{n}{2}\log\sigma^2 - \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{2\sigma^2})$
 
+*Derivative of the first term:* $\frac{\partial}{\partial \sigma^2}( -\frac{n}{2} \log \sigma^2) = -\frac{n}{2} \cdot \frac{1}{\sigma^2} = -\frac{n}{2\sigma^2}$
 
+*Derivative of the second term:* $\frac{\partial}{\partial \sigma^2} ( -\frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{2 \sigma^2}) =-\frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{2} \cdot -\frac{1}{(\sigma^2)^2} = \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{2 (\sigma^2)^2}$
 
-$$$$
+**Answer:**
 
+$$\hat{\sigma}^2 = -\frac{n}{2\sigma^2} + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{2 (\sigma^2)^2}$$
 
+## Use of ChatGPT and other generative AI tools
 
+I certify that I use ChatGPT in this assignment for converting the mathematical expressions and equations to LaTex format in addition to asking for assistance in reporting computational time. Although it was quiet helpful with converting into LaTex format, it can be distracting as sometimes spit out the calculation of the equation without being prompted.
 
+[**Link to Chat Thread**](https://chatgpt.com/share/678f3e9b-27e8-8007-882d-2fa05a37c418)
 
-
-
-
+```{r}
+sessionInfo()
+```
