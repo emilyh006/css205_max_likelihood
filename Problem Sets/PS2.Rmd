@@ -1,0 +1,311 @@
+---
+title: "PS02 by Emily Han"
+output:
+  pdf_document: default
+  html_document: default
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+## 1. The exponential distribution
+
+The exponential probability density function is defined as: 𝑓𝑒(𝑥;𝜃)=𝜃exp(−𝜃𝑥).
+
+
+### 1a. 
+Loosely speaking, the “support” of a random variable is the set of admissible values, or values that have positive probability. More formally, the support of a function is the subset of the function’s domain that are not mapped to zero. If 𝑋∼𝑓𝑒(𝑥;𝜃) what is the support of 𝑋?
+
+
+The support of the function is when $\theta > 0$.
+
+
+
+### 1b. 
+
+Derive the log-likelihood for 𝑛independent observations under the probability model 𝑓𝑒.
+
+$$L(\theta; x_1, x_2,.., x_n) = \prod_{i=1}^n \theta e^{-\theta x_i}$$
+$$ logL(\theta ;x) = nlog(\theta) - \theta \sum_{i=1}^{n} x_i$$
+
+
+### 1c. 
+c. Derive an analytic expression for 𝜃, the MLE.
+
+$$\frac{d}{d\theta} \left( n \log(\theta) - \theta \sum_{i=1}^n x_i \right) 
+= \frac{n}{\theta} - \sum_{i=1}^n x_i$$
+$$\frac{n}{\theta} - \sum_{i=1}^n x_i =0$$
+
+$$\hat{\theta} = \frac{n}{\sum_{i=1}^n x_i}$$
+
+
+
+### 1d. 
+
+Type the following into R:
+
+
+```{r}
+library(formatR)
+set.seed(5)
+x <- rexp(10000, 5)
+```
+
+
+
+#### i. Program the exponential log likelihood function into R; call this function exp.ll.
+
+```{r}
+exp.ll <- function(theta,x){
+  n <- length(x)
+  log_likelihood <- n * log(theta) - theta* sum(x)
+  return(log_likelihood)
+}
+```
+
+
+#### ii. Plot the log-likelihood as a function of 𝜃given x. Eyeballing the graph, what is the approximate value of the maximizer?
+
+```{r}
+theta_values <- seq(0.1, 6, length.out = 100)
+log_ll_val <- exp.ll(theta_values, x)
+
+
+plot(theta_values,log_ll_val, xlab = "Theta Values", ylab = "Log Likelihood Values")
+
+```
+The approximate value of the maximizer is 5.2. 
+
+
+#### iii. 
+Calculate 𝜃̂ given x using the analytic result you derived in part (c).
+
+```{r}
+mle <- function(i){
+  n <- length(i)
+  theta_hat <- n / (sum(i))
+  return(theta_hat)
+}
+
+theta_hat <- mle(x)
+
+log_val1 <- exp.ll(theta_hat, x)
+log_val2 <- exp.ll(6, x)
+
+
+
+likelihood_ratio <- log_val1 - log_val2
+likelihood_ratio
+
+```
+
+
+```{r}
+
+
+# Maximum Likelihood Estimation using optim
+mle.fit <- optim(
+  par = c(1),              # Starting values for the parameters
+  fn = exp.ll,             # Function to minimize (log-likelihood)
+  x = x,
+  method = "BFGS",            # Optimization method (Broyden–Fletcher–Goldfarb–Shanno algorithm)
+  control = list(
+    trace = TRUE,             # Show optimization progress
+    maxit = 1000,             # Maximum number of iterations
+    fnscale = -1              # Negate the function to maximize instead of minimize
+  ),
+  hessian = TRUE              # Return the Hessian matrix
+)
+
+# Check for convergence issues
+if (mle.fit$convergence != 0) {
+  print("WARNING: Convergence Problems; Try again!")
+}
+```
+```{r}
+mle.fit$par
+
+```
+
+
+# 2. Maximizing a multivariate function
+
+a. Use the following code to implement and visualize this function. Just eye-balling it, at what values of 𝑥 and 𝑦 does it look like the function achieves a maximum? Use ChatGPT or a similar tool to walk you through the code if you do not understand what the code is doing.
+```{r}
+mvn <- function(xy) {
+    x <- xy[1]
+    y <- xy[2]
+    z <- exp(-0.5 * ((x - 2)^2 + (y - 1)^2))
+    return(z)
+}
+
+# install.packages('lattice')
+library(lattice)
+
+y <- x <- seq(-5, 5, by = 0.1)
+grid <- expand.grid(x, y)
+names(grid) <- c("x", "y")
+grid$z <- apply(grid, 1, mvn)
+
+wireframe(z ~ x + y, data = grid, shade = TRUE, light.source = c(10, 0, 10), scales = list(arrows = FALSE))
+```
+At x = 2 and 𝑦 = 1, it look like the function achieves a maximum. 
+
+
+b. Use optim() to find the values (𝑥⋆,𝑦⋆) that maximize this joint density. Use c(1,0) as your starting values and method="BFGS". Then find the maximum again with the starting value `c(5,5), still using method="BFGS". Compare the performance of optim() for these two sets of starting values.
+
+
+
+```{r}
+# Maximum Likelihood Estimation using optim
+mle.fit_b1 <- optim(
+  par = c(1, 0),              # Starting values for the parameters
+  fn = mvn,             # Function to minimize (log-likelihood)
+  method = "BFGS",            # Optimization method (Broyden–Fletcher–Goldfarb–Shanno algorithm)
+  control = list(
+    trace = TRUE,             # Show optimization progress
+    maxit = 1000,             # Maximum number of iterations
+    fnscale = -1              # Negate the function to maximize instead of minimize
+  ),
+  hessian = TRUE              # Return the Hessian matrix
+)
+
+# Check for convergence issues
+if (mle.fit_b1$convergence != 0) {
+  print("WARNING: Convergence Problems; Try again!")
+}
+```
+
+
+```{r}
+mle.fit_b1$par
+```
+
+
+
+```{r}
+# Maximum Likelihood Estimation using optim
+mle.fit_b2 <- optim(
+  par = c(5, 5),              # Starting values for the parameters
+  fn = mvn,             # Function to minimize (log-likelihood)
+  method = "BFGS",            # Optimization method (Broyden–Fletcher–Goldfarb–Shanno algorithm)
+  control = list(
+    trace = TRUE,             # Show optimization progress
+    maxit = 1000,             # Maximum number of iterations
+    fnscale = -1              # Negate the function to maximize instead of minimize
+  ),
+  hessian = TRUE              # Return the Hessian matrix
+)
+
+# Check for convergence issues
+if (mle.fit_b2$convergence != 0) {
+  print("WARNING: Convergence Problems; Try again!")
+}
+
+```
+```{r}
+mle.fit_b2$par
+```
+
+
+
+c. Alter the provided R function so that it returns the (natural) logarithm of 𝑓(𝑥,𝑦). Alter the code to plot the log likelihood. Then repeat the two procedures you performed in section (b), only as applied to the log likelihood. Describe any differences in your results, and then provide a brief explanation for those differences.
+
+
+```{r}
+mvn_log <- function(xy) {
+    x <- xy[1]
+    y <- xy[2]
+    z <- log(exp(-0.5 * ((x - 2)^2 + (y - 1)^2)))
+    return(z)
+}
+
+
+y <- x <- seq(-5, 5, by = 0.1)
+grid <- expand.grid(x, y)
+names(grid) <- c("x", "y")
+grid$z <- apply(grid, 1, mvn_log)
+
+wireframe(z ~ x + y, data = grid, shade = TRUE, light.source = c(10, 0, 10), scales = list(arrows = FALSE))
+```
+
+
+
+```{r}
+# Maximum Likelihood Estimation using optim
+mle.fit_b3 <- optim(
+  par = c(1, 0),              # Starting values for the parameters
+  fn = mvn_log,             # Function to minimize (log-likelihood)
+  method = "BFGS",            # Optimization method (Broyden–Fletcher–Goldfarb–Shanno algorithm)
+  control = list(
+    trace = TRUE,             # Show optimization progress
+    maxit = 1000,             # Maximum number of iterations
+    fnscale = -1              # Negate the function to maximize instead of minimize
+  ),
+  hessian = TRUE              # Return the Hessian matrix
+)
+
+# Check for convergence issues
+if (mle.fit_b3$convergence != 0) {
+  print("WARNING: Convergence Problems; Try again!")
+}
+
+
+```
+
+```{r}
+mle.fit_b3$par
+```
+
+
+
+```{r}
+mle.fit_b4 <- optim(
+  par = c(5, 5),              # Starting values for the parameters
+  fn = mvn_log,             # Function to minimize (log-likelihood)
+  method = "BFGS",            # Optimization method (Broyden–Fletcher–Goldfarb–Shanno algorithm)
+  control = list(
+    trace = TRUE,             # Show optimization progress
+    maxit = 1000,             # Maximum number of iterations
+    fnscale = -1              # Negate the function to maximize instead of minimize
+  ),
+  hessian = TRUE              # Return the Hessian matrix
+)
+
+# Check for convergence issues
+if (mle.fit_b4$convergence != 0) {
+  print("WARNING: Convergence Problems; Try again!")
+}
+
+```
+```{r}
+mle.fit_b4$par
+```
+
+
+# 3. The normal variance
+
+a. Derive 𝜎2ˆ, the MLE of the variance of the normal distribution. Hint: begin with the log-likelihood of the Normal distribution given in the text.
+
+$$-2\log L = n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2}$$
+$$n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2}$$
+
+
+
+$$\frac{d}{d\sigma^2} \left( n\log\sigma^2 + \frac{\sum_{i=1}^n (y_i - \beta_0 - \beta_1 x_i)^2}{\sigma^2} \right)$$
+
+
+
+$$$$
+
+
+
+
+
+
+
+
