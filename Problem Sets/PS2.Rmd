@@ -84,6 +84,7 @@ mle <- function(i){
 }
 
 theta_hat <- mle(x)
+theta_hat
 ```
 
 #### iv.
