@@ -1,0 +1,357 @@
+---
+title: "PS02 by Emily Han"
+output:
+  pdf_document: default
+  html_document: default
+date: "`r Sys.Date()`"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+```
+
+## 1. Binomial Likelihood
+
+### 1a.
+
+If \$X \sim f_b (x; n,p) \$ derive the log-likelihood assuming is known. See p. 6 of the text for a review of the binomial distribution.
+
+$$
+L = \binom{n}{k} p^k (1-p)^{n-k}
+$$
+
+$$
+log L = \log \left( \binom{n}{k} \right) + k \log(p) + (n-k) \log(1-p)
+$$
+
+Since $\log\binom{n}{k}$ is constant
+
+$$
+log L = k \log(p) + (n-k) \log(1-p)
+$$
+
+### 1b. Derive the score function for the likelihood in (a)
+
+$$S(p) = \frac{\partial}{\partial p} \log L= \frac{k}{p} - \frac{n-k}{1-p}$$
+
+### 1c.
+
+Derive an expression for the MLE $\hat{p}$
+
+$$\hat{p} = S(p) =  0$$
+
+$$\frac{k}{p} - \frac{n-k}{1-p} = 0$$
+
+$$\frac{k}{p} = \frac{n-k}{1-p}$$
+
+$$k(1-p) = (n-k)p$$
+
+$$k - kp = np - kp$$
+
+$$\hat{p} = \frac{k}{n}$$
+
+### 1d.
+
+Derive the observed Fisher information for the likelihood in (a)
+
+$$
+I(p) = -\frac{\partial}{\partial p} S(p)
+$$
+
+$$
+= -\frac{\partial}{\partial p} \left( \frac{k}{p} - \frac{n-k}{1-p} \right)
+$$
+
+$$
+= -\left( \frac{\partial}{\partial p} \frac{k}{p} \right) - \left( \frac{\partial}{\partial p} \frac{n-k}{1-p} \right)
+$$
+
+$$
+\frac{\partial}{\partial p} \frac{k}{p} = -\frac{k}{p^2}
+$$
+
+$$
+\frac{\partial}{\partial p} \frac{n-k}{1-p} = -\frac{(n-k)}{(1-p)^2}
+$$
+
+$$
+I(p) = \frac{k}{p^2} + \frac{n-k}{(1-p)^2}
+$$
+
+$$
+k = np \quad \text{(from c)}
+$$
+
+$$
+I(p) = \frac{np}{p^2} + \frac{n-np}{(1-p)^2}
+$$
+
+$$
+I(p) = \frac{n}{p} + \frac{n(1-p)}{p(1-p)^2}
+$$
+
+$$
+I(p) = \frac{n(1-p) + np}{p(1-p)}
+$$
+
+$$
+I(p) = \frac{n}{p(1-p)}
+$$
+
+### 1e.
+
+How does the expression in (d) relate to the variance of a Bernoulli random variable?
+
+Variance of a Bernoulli random variable = $p(1-p)$ Therefore, the variance is the inverse of fisher score scaled by the number of trials.
+
+
+---
+
+## 2. Clinton Impeachment vote
+
+For this exercise you will need to load the file `impeach.csv`, which records the votes of 435 members of the US House of Representatives over whether to impeach President Bill Clinton.
+
+### 2a.
+
+In `R`, construct a binary, numeric variable that encodes whether a member of Congress supported the Clinton impeachment. Note that there were four articles of impeachment, so you will need to decide how to use the four votes to construct a binary variable. You will also need to decide how to handle the two who did not vote. Call this variable `impch`.
+
+```{r}
+dat <- read.csv('./data/impeach.csv')
+
+library(dplyr)
+
+
+# If the member didn't vote, I am assuming that they are not supporting the impeachment 
+dat$votesum[is.na(dat$votesum)] <- 0
+
+# I am assuming that if the member voted in support of any of the cause, they are supporting the impeachment
+dat <- dat |> 
+  mutate(impch = if_else(votesum > 0, 1, 0))
+```
+
+### 2b.
+
+Modify the code in the binreg function from p. 53 to apply to the Clinton data and to take into account the gradient of the log likelihood function (see the expression on p. 53). Note that the optim() function has an argument gr that will use the gradient function that you program in its hill-climbing algorithm.
+
+```{r}
+binreg <- function(X, y) {
+  X <- cbind(1, X)  # Add intercept
+  
+  # Negative log-likelihood
+  negLL <- function(b, X, y) { 
+    p <- as.vector(1 / (1 + exp(-X %*% b))) 
+    -sum(y * log(p) + (1 - y) * log(1 - p))
+  }
+  
+  # Gradient of the log-likelihood
+  gradient <- function(b, X, y) {
+    p <- as.vector(1 / (1 + exp(-X %*% b))) 
+    -t(X) %*% (y - p)
+  }
+  
+  # Optimize
+  results <- optim(
+    par = rep(0, ncol(X)),
+    fn = negLL,
+    gr = gradient,  # Include gradient
+    hessian = TRUE,
+    method = "BFGS",
+    X = X,
+    y = y
+  )
+  
+  # Return results
+  list(
+    coefficients = results$par,
+    varcovariance = solve(results$hessian),
+    deviance = 2 * results$value,
+    converged = results$convergence == 0
+  )
+}
+```
+
+### 2c.
+
+Using the Clinton data and your modified binreg function, fit a logistic regression using impch as the response and the congressperson’s partisanship (partyid) and Clinton’s share of the 1996 2-party vote in the congressperson’s district (clint96) as predictors. Be sure that the function’s output includes the maximized log-likelihood. Present a table of coefficients and standard errors as derived from the binreg function. Also calculate and report the AIC and BIC for this mode
+
+```{r}
+# Preparing the Data 
+
+# Dropping NA
+dat1 <- na.omit(dat)
+
+
+predictors1 <- as.matrix(dat1[2:3])
+target1 <- dat1$impch
+```
+
+```{r}
+# Fitting the model 
+mlebin.fit <- binreg(predictors1, target1)
+round(mlebin.fit$coefficients, 3)
+```
+
+#### Model Table with Coefficient and StdErr
+
+```{r}
+# Calculating the Standard Error and build the summary table 
+StdErr <- sqrt(diag(mlebin.fit$varcovariance))
+
+logreg_table <- as.data.frame(cbind(mlebin.fit$coefficients, StdErr))
+colnames(logreg_table) <- c('Coefficient','Std. Error')
+rownames(logreg_table) <- c('(Intercept)','clint96','partyid')
+
+logreg_table
+```
+
+#### Calculating the AIC & BIC
+
+```{r}
+# Calculating the likelihood function 
+
+beta <- as.vector(mlebin.fit$coefficients)
+mod_X <- cbind(1, predictors1)
+
+negLL_fucntion <- function(b, X, y) { 
+    p <- as.vector(1 / (1 + exp(-X %*% b))) 
+    -sum(y * log(p) + (1 - y) * log(1 - p))
+  }
+
+
+negLL <- negLL_fucntion(beta, mod_X, target1)
+```
+
+$$\text{AIC} = − 2\log L + 2 k $$
+
+```{r}
+# Calculating AIC
+
+AIC <- 2*negLL + (2* 3)
+AIC
+```
+
+$$\text{BIC} = − 2\log L + k\log n $$
+
+```{r}
+# Calculating BIC
+
+BIC <- 2*negLL + (3* log(length(dat1)))
+BIC
+```
+
+### 2d. Use glm() to confirm that your answer to part (c) is correct.
+
+```{r}
+glm_mod <- glm(impch ~ clint96 + partyid, family = binomial (link = 'logit'), data = dat1)
+summary(glm_mod)
+```
+
+### 2e. 
+
+State the model you just fit in terms of a systematic and a stochastic component. What assumptions about independence does this model entail? Do you think it is reasonable? Answer in 3 or fewer sentences.
+
+
+
+stochastic component: $Y_{i} \sim Bernoulli(\theta_i)$
+systematic component: $\theta_i = \frac{1}{(1 + \mathrm{e}^{-X_{i}\beta})}$
+
+The model assumes that all observations are independent, given the predictors. Each vote is assumed to be independent of others’ votes once the predictors in the model are accounted for. Since party ID, a strong predictor, is included, this assumption is reasonable but I think it would be better to include the remaining two as well. 
+
+
+### 2f. 
+
+
+Construct a visual display that provides an interpretation of the model you estimated. Specifically, display the expected probability of voting for impeachment for Democrats and Republicans, conditional on Clinton’s vote share. Make sure your display accounts for estimation uncertainty
+
+
+```{r}
+library(MASS)
+library(ggplot2)
+```
+
+
+```{r}
+# To transform to probability function 
+log_inv <- function(x) {
+  1/ (1 + exp(-x))}
+
+#Clinton’s vote share 
+clint_vote <- seq(min(dat1$clint96), max(dat1$clint96), by = 0.1)
+
+# Drawing 1000 coefficients 
+simulated_betas <- mvrnorm(1000, coef(glm_mod), vcov(glm_mod))
+
+# Democrat Party
+demo <- t(cbind(1, 0, clint_vote))
+
+# Republican Party
+repub <- t(cbind(1, 1, clint_vote))
+
+
+#Calculate predicted probability 
+prob_demo <- log_inv(simulated_betas %*% demo)
+prob_repub <- log_inv(simulated_betas %*% repub)
+
+
+prob_demo <- apply(prob_demo, 2, quantile, c(0.025, 0.5, 0.975)) # 95% CI and median 
+prob_repub <- apply(prob_repub, 2, quantile, c(0.025, 0.5, 0.975)) # 95% CI and median
+               
+```
+
+
+```{r}
+# Basic Plot Setup
+plot(
+  clint_vote, prob_demo[2, ],  # Median probability for Democrats
+  type = "n",  # Do not plot points/lines yet
+  ylim = c(0, 1),  # Ensure the y-axis range is appropriate for probabilities
+  xlab = "Clinton Vote Share",
+  ylab = "Predicted Probability of Impeachment",
+  main = "Clinton Vote Share, Party, and Impeachment"
+)
+
+# Add Confidence Interval (CI) Shaded Areas
+polygon(
+  x = c(clint_vote, rev(clint_vote)),
+  y = c(prob_demo[1, ], rev(prob_demo[3, ])),  # 2.5th and 97.5th percentiles for Democrats
+  col = rgb(0.8, 0.8, 1, 0.5),  # Light blue with transparency
+  border = NA
+)
+
+polygon(
+  x = c(clint_vote, rev(clint_vote)),
+  y = c(prob_repub[1, ], rev(prob_repub[3, ])),  # 2.5th and 97.5th percentiles for Republicans
+  col = rgb(1, 0.8, 0.8, 0.5),  # Light red with transparency
+  border = NA
+)
+
+# Add Median Probability Lines
+lines(clint_vote, prob_demo[2, ], col = "blue", lwd = 2, lty = 2)  # Democrats: Dashed line
+lines(clint_vote, prob_repub[2, ], col = "red", lwd = 2)           # Republicans: Solid line
+
+# Add Legend
+legend(
+  "topright", 
+  legend = c("Democrats", "Republicans"),
+  col = c("blue", "red"),
+  lty = c(2, 1),
+  lwd = 2
+)
+
+```
+
+
+
+
+### 2g. 
+
+Fit second, more complicated model by including one measure of conservatism (ccoal or aflcio). Display this model and the earlier one in a well-formatted regression table. Compare this second model to the simpler alternative using a likelihood ratio test (hint: use 1-pchisq() and be careful about the number of observations). Then generate an ROC plot that compares a model including only party ID and Clinton vote share to one that also includes some measure of conservatism. What do you conclude about the relative in-sample performance of these two models?
+
+
+
+
+```{r}
+sessionInfo()
+```
