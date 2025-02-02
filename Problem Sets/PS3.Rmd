@@ -1,9 +1,10 @@
 ---
-title: "PS02 by Emily Han"
+title: "PS03 by Emily Han"
 output:
   pdf_document: default
   html_document: default
 date: "`r Sys.Date()`"
+
 ---
 
 ```{r setup, include=FALSE}
@@ -16,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ### 1a.
 
-If \$X \sim f_b (x; n,p) \$ derive the log-likelihood assuming is known. See p. 6 of the text for a review of the binomial distribution.
+If $X \sim f_b (x; n,p)$ derive the log-likelihood assuming is known. See p. 6 of the text for a review of the binomial distribution.
 
 $$
 L = \binom{n}{k} p^k (1-p)^{n-k}
@@ -106,8 +107,10 @@ How does the expression in (d) relate to the variance of a Bernoulli random vari
 
 Variance of a Bernoulli random variable = $p(1-p)$ Therefore, the variance is the inverse of fisher score scaled by the number of trials.
 
+<br>
+<br>
 
----
+------------------------------------------------------------------------
 
 ## 2. Clinton Impeachment vote
 
@@ -174,7 +177,7 @@ binreg <- function(X, y) {
 
 ### 2c.
 
-Using the Clinton data and your modified binreg function, fit a logistic regression using impch as the response and the congressperson’s partisanship (partyid) and Clinton’s share of the 1996 2-party vote in the congressperson’s district (clint96) as predictors. Be sure that the function’s output includes the maximized log-likelihood. Present a table of coefficients and standard errors as derived from the binreg function. Also calculate and report the AIC and BIC for this mode
+Using the Clinton data and your modified `binreg` function, fit a logistic regression using `impch` as the response and the congressperson’s partisanship `(partyid)` and Clinton’s share of the 1996 2-party vote in the congressperson’s district `(clint96)` as predictors. Be sure that the function’s output includes the maximized log-likelihood. Present a table of coefficients and standard errors as derived from the `binreg` function. Also calculate and report the AIC and BIC for this mode
 
 ```{r}
 # Preparing the Data 
@@ -223,7 +226,7 @@ negLL_fucntion <- function(b, X, y) {
 negLL <- negLL_fucntion(beta, mod_X, target1)
 ```
 
-$$\text{AIC} = − 2\log L + 2 k $$
+$$\text{AIC} = - 2\log L + 2 k $$
 
 ```{r}
 # Calculating AIC
@@ -232,7 +235,7 @@ AIC <- 2*negLL + (2* 3)
 AIC
 ```
 
-$$\text{BIC} = − 2\log L + k\log n $$
+$$\text{BIC} = - 2\log L + k\log n $$
 
 ```{r}
 # Calculating BIC
@@ -248,29 +251,22 @@ glm_mod <- glm(impch ~ clint96 + partyid, family = binomial (link = 'logit'), da
 summary(glm_mod)
 ```
 
-### 2e. 
+### 2e.
 
 State the model you just fit in terms of a systematic and a stochastic component. What assumptions about independence does this model entail? Do you think it is reasonable? Answer in 3 or fewer sentences.
 
+stochastic component: $Y_{i} \sim Bernoulli(\theta_i)$ systematic component: $\theta_i = \frac{1}{(1 + \mathrm{e}^{-X_{i}\beta})}$
 
+The model assumes that all observations are independent, given the predictors. Each vote is assumed to be independent of others’ votes once the predictors in the model are accounted for. Since party ID, a strong predictor, is included, the model is reasonable.
 
-stochastic component: $Y_{i} \sim Bernoulli(\theta_i)$
-systematic component: $\theta_i = \frac{1}{(1 + \mathrm{e}^{-X_{i}\beta})}$
-
-The model assumes that all observations are independent, given the predictors. Each vote is assumed to be independent of others’ votes once the predictors in the model are accounted for. Since party ID, a strong predictor, is included, this assumption is reasonable but I think it would be better to include the remaining two as well. 
-
-
-### 2f. 
-
+### 2f.
 
 Construct a visual display that provides an interpretation of the model you estimated. Specifically, display the expected probability of voting for impeachment for Democrats and Republicans, conditional on Clinton’s vote share. Make sure your display accounts for estimation uncertainty
-
 
 ```{r}
 library(MASS)
 library(ggplot2)
 ```
-
 
 ```{r}
 # To transform to probability function 
@@ -284,10 +280,10 @@ clint_vote <- seq(min(dat1$clint96), max(dat1$clint96), by = 0.1)
 simulated_betas <- mvrnorm(1000, coef(glm_mod), vcov(glm_mod))
 
 # Democrat Party
-demo <- t(cbind(1, 0, clint_vote))
+demo <- t(cbind(1, clint_vote, 0))
 
 # Republican Party
-repub <- t(cbind(1, 1, clint_vote))
+repub <- t(cbind(1, clint_vote, 1))
 
 
 #Calculate predicted probability 
@@ -295,63 +291,96 @@ prob_demo <- log_inv(simulated_betas %*% demo)
 prob_repub <- log_inv(simulated_betas %*% repub)
 
 
-prob_demo <- apply(prob_demo, 2, quantile, c(0.025, 0.5, 0.975)) # 95% CI and median 
-prob_repub <- apply(prob_repub, 2, quantile, c(0.025, 0.5, 0.975)) # 95% CI and median
+prob_demo <- apply(prob_demo, 2, function(x) quantile(x, c(0.025, 0.5, 0.975)))
+prob_repub <- apply(prob_repub, 2, function(x) quantile(x, c(0.025, 0.5, 0.975)))
+
                
 ```
 
-
 ```{r}
 # Basic Plot Setup
-plot(
-  clint_vote, prob_demo[2, ],  # Median probability for Democrats
-  type = "n",  # Do not plot points/lines yet
-  ylim = c(0, 1),  # Ensure the y-axis range is appropriate for probabilities
-  xlab = "Clinton Vote Share",
-  ylab = "Predicted Probability of Impeachment",
-  main = "Clinton Vote Share, Party, and Impeachment"
-)
+plot( clint_vote, prob_demo[2, ], ylim = c(0, 0.9), 
+      xlab = "Clinton Vote Share",
+      ylab = "Predicted Probability of Impeachment",
+      main = "Clinton Vote Share, Party, and Impeachment", 
+      bty = "n",
+      col = "white"
+  )
 
-# Add Confidence Interval (CI) Shaded Areas
-polygon(
-  x = c(clint_vote, rev(clint_vote)),
-  y = c(prob_demo[1, ], rev(prob_demo[3, ])),  # 2.5th and 97.5th percentiles for Democrats
-  col = rgb(0.8, 0.8, 1, 0.5),  # Light blue with transparency
-  border = NA
-)
+polygon(x = c(clint_vote, rev(clint_vote)),
+        y = c(prob_demo[1, ], rev(prob_demo[3, ])),
+        col = grey(0.8), border = NA)
+        
 
-polygon(
-  x = c(clint_vote, rev(clint_vote)),
-  y = c(prob_repub[1, ], rev(prob_repub[3, ])),  # 2.5th and 97.5th percentiles for Republicans
-  col = rgb(1, 0.8, 0.8, 0.5),  # Light red with transparency
-  border = NA
-)
+polygon(x = c(clint_vote, rev(clint_vote)), 
+        y =c(prob_repub[1, ], rev(prob_repub[3, ])),
+        col = grey(0.8), border = NA)
 
-# Add Median Probability Lines
-lines(clint_vote, prob_demo[2, ], col = "blue", lwd = 2, lty = 2)  # Democrats: Dashed line
-lines(clint_vote, prob_repub[2, ], col = "red", lwd = 2)           # Republicans: Solid line
 
-# Add Legend
-legend(
-  "topright", 
-  legend = c("Democrats", "Republicans"),
-  col = c("blue", "red"),
-  lty = c(2, 1),
-  lwd = 2
-)
 
+lines(clint_vote, prob_demo[2, ], lty = 3, lwd = 2)
+lines(clint_vote, prob_repub[2, ], lwd = 2)
+
+
+legend("topright", legend = c("Democtats", "Republicans"), lty = c(1, 3), lwd = 3)
 ```
 
-
-
-
-### 2g. 
+### 2g.
 
 Fit second, more complicated model by including one measure of conservatism (ccoal or aflcio). Display this model and the earlier one in a well-formatted regression table. Compare this second model to the simpler alternative using a likelihood ratio test (hint: use 1-pchisq() and be careful about the number of observations). Then generate an ROC plot that compares a model including only party ID and Clinton vote share to one that also includes some measure of conservatism. What do you conclude about the relative in-sample performance of these two models?
 
+```{r}
+library(huxtable)
 
+simple_glm <- glm(impch ~ clint96 + partyid, family = binomial (link = 'logit'), data = dat1)
 
+complex_glm <- glm(impch ~ clint96 + partyid + ccoal98, family = binomial (link = 'logit'), data = dat1)
+
+# Regression table for both models
+huxreg(list("fit.glm" = simple_glm, "complex.glm" = complex_glm))
+```
 
 ```{r}
-sessionInfo()
+# Calculating the likelihood ratio
+
+ll_simple <- logLik(simple_glm)
+ll_complex <- logLik(complex_glm)
+
+ll_ratio <- (ll_simple - ll_complex)
+
+# Compute the likelihood ratio test statistic
+ll_ratio_stat <- -2 * (ll_ratio)
+
+# Computing the p-value 
+df <- attr(ll_complex, "df") - attr(ll_simple, "df")
+p_value <- 1 - pchisq(ll_ratio_stat, df)
+
+
+cat("Likelihood Statistic:", ll_ratio_stat, "\n")
+cat("Df:", df, "\n")
+cat("P-vale:", p_value, "\n")
 ```
+
+```{r}
+library(pROC)
+
+# ROC plot
+roc_simple <- roc(dat1$impch, fitted(simple_glm), na.rm = TRUE)
+roc_complex <- roc(dat1$impch, fitted(complex_glm), na.rm = TRUE)
+
+plot(roc_simple, col = "red", levels = c(0, 1), main = "ROC Curves")
+plot(roc_complex, col = "green", levels = c(0, 1), add = TRUE)
+
+legend("bottomright", 
+       legend = c("Simple Model", "Complex Model"), 
+       col = c("red", "green"), 
+       lty = 2)
+```
+
+It seems like both model's performance in predicting the impeachment decision is nearly identical.
+
+------------------------------------------------------------------------
+
+## Use of ChatGPT and other generative AI tools
+
+I certify that I use ChatGPT in this assignment for converting the mathematical expressions and equations to LaTex format in addition to some debugging (trying to find which package the function uses). It was quiet helpful and fix formatting issues.
