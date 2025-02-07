@@ -2,22 +2,25 @@
 title: "PS04 by Emily Han"
 output:
   pdf_document: default
-  html_document: default
 date: "`r Sys.Date()`"
----
+--- 
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 ```
 
+
 ```{r}
 # Loading library 
+suppressMessages({
   library(caret)
   library(huxtable)
   library(pROC)
   library(ROCR)
   library(MASS)
   library(separationplot)
+  library(ggplot2)})
+
 ```
 
 
@@ -74,16 +77,20 @@ probit_inter_mod <- glm(onset ~ gdpenl + lpopl1 + lmtnest + Oil + polity2l + rel
 
 Feel free to fit additional models that explore different distributional assumptions or covariates. Present the results from all four models in a well-formatted, publication-quality regression table. Write a paragraph summarizing the information you put in the table. The gt, modelsummary and stargazer packages may help. Based on in-sample model fit, which model(s) appears to be the most promising?
 
-```{r}
+
+
+```{r, results='asis'}
 #Models' summary
 
 huxreg(list("Logit Model" = logit_mod, "Probit Model" = probit_mod, "Probit w/ Dummy" = probit_dummy_mod, "Probit w/ Interaction" = probit_inter_mod))
 ```
 
+
 The table compares four models predicting civil war onset. Models 1 (Logit) and 2 (Probit) show that higher GDP reduces conflict risk, while larger populations and mountainous terrain increase it. Model 3 (Probit w/ Dummy) adds oil exports, democracy, and religious diversity, showing that oil-exporting countries face higher conflict risk, while democracy has a small, positive effect. Model 4 (Probit w/ Interaction) introduces an interaction between democracy and religious diversity, but the effect is not statistically significant. Across all 4 models, Model 3 and Model 4 seems the most promising. While Model 4 has the lowest AIC and highest log-likelihood, its improvement in comparison to the Model 3 is modest, making it unclear whether it provides to be a significantly better fit.
 
 
 ---
+
 
 ### c. Develop ROC plot and separation plots comparing the in-sample fit of your estimated models. The ROCR library may help
 
@@ -266,6 +273,7 @@ cat("Probit with Interaction AUC:", probit_inter_auc, "\n")
 Based on the analysis, I prefer the probit model with dummy variables as it outperforms the two baseline models (logit and standard probit) while achieving an AUC score (0.718) close to the model with interaction (0.72). Since the analysis suggests the interaction term does not significantly improve predictive performance, the probit with dummy variables provides a better balance between accuracy and model simplicity, making it the preferred choice for predicting civil war onset.
 
 ---
+
 ### f.
 
 Interpret the relationship between civil war onset and democracy in the preferred model. Use a visual presentation of the model predictions and be sure to display the estimation uncertainty around the expected values produced by the model. Be sure to clearly state the scenarios you chose and why. If the best performing model includes the interaction term then provide a plot that interprets that conditional relationship.
