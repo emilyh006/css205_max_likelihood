@@ -1,8 +1,8 @@
 # Maximum Likelihood Estimation & Model Evaluation  
-### Author: Emily Han
-### Course: CSS 205 (Advanced Statistical Methods)  
-### Instructor: Prof. John Ahlquist (UCSD)
-### Year: 2025  
+### Solved by: Emily Han
+#### Course: CSS 205 (Advanced Statistical Methods)  
+#### Instructor: Prof. John Ahlquist (UCSD)
+#### Year: 2025  
 
 ## 📌 About This Repository  
 This repository contains problem sets from **POLI 271**, a graduate-level course on **statistical modeling and maximum likelihood estimation (MLE)**. These problem sets were developed by **Professor John Ahlquist** to provide hands-on experience in applying **MLE, logistic and probit regression, model evaluation, and cross-validation** to real-world political science data.  
@@ -24,12 +24,12 @@ Through these exercises, I have implemented **likelihood-based inference**, expl
 - Problem Set Question `.html` file in question folder 
 ---
 
-## 📢 **Why This Matters**
+## 📢 **Skills Demonstrated**
 These problem sets have been **instrumental in strengthening my understanding of applied MLE and statistical modeling**.
-✅ **Work with real-world political science data**  
-✅ **Apply likelihood-based estimation methods in R**  
-✅ **Evaluate model fit and predictive performance**  
-✅ **Use simulation techniques to validate statistical assumptions**  
+- ✅ Work with real-world political science data
+- ✅ Apply likelihood-based estimation methods in R
+- ✅ Evaluate model fit and predictive performance*
+- ✅ Use simulation techniques to validate statistical assumptions
 
 This repository serves as a **portfolio of my statistical skills**, showcasing **MLE applications, logistic regression, model selection, and predictive analysis** in a structured and transparent manner.  
 
