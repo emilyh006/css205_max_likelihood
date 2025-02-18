@@ -16,8 +16,8 @@ library(caret)
 library(ordinal)
 library(nnet)
 library(ggplot2)
-library(effects)
-library(margins)
+library(marginaleffects)
+library(ggplot2)
 
 ```
 
@@ -51,13 +51,12 @@ Using Drury’s data, use an ordered logit regression to evaluate the success of
 mod1 <- polr(as.ordered(result) ~ log(gnprat) + trade + tarcst + cost + coop, 
              data = dat, method = "logistic", Hess = TRUE)
 
-mod2 <- polr(as.ordered(result) ~ log(gnprat) + cost + coop, 
+mod2 <- polr(as.ordered(result) ~ trade + tarcst + coop, 
              data = dat, method = "logistic", Hess = TRUE)
 ```
 
-```{r}
+```{r, warning=FALSE, results = 'asis'}
 #Models' summary
-
 huxreg(list("Full Model" = mod1, "Simple Model" = mod2))
 ```
 ```{r}
@@ -71,7 +70,7 @@ cat("P-vale:", p_value)
 
 
 ```{r}
-# Cross Validation to find out out
+# Data Prep
 dat1 <- read.csv("./data/drury_jpr_data.csv")
 dat1$result <- factor(dat1$result, 
                      levels = c(1, 2, 3, 4), 
@@ -89,7 +88,7 @@ cv_full <- train(as.ordered(result) ~ log(gnprat) + trade + tarcst + cost + coop
                  method = "polr",
                  trControl = cv_control)
 
-cv_sim <- train(as.ordered(result) ~ log(gnprat) + cost + coop,
+cv_sim <- train(as.ordered(result) ~ trade + tarcst + coop,
                  data = dat1,
                  method = "polr",
                  trControl = cv_control)
@@ -98,7 +97,7 @@ cat("\nThe average accuracy of the full model:", round(mean(cv_full$results$Accu
 cat("The average accuracy of the simple model:", round(mean(cv_sim$results$Accuracy), 4), "\n")
 
 ```
-Both likelihood ratio test and lower AIC value suggest that the full model is a better fit in evaluating the success of economic sanctions. The out-sample cross-validation also suggests that the full model result in higher accuracy. However, the warning suggests that we should interpret the out-of-sample accuracy with caution, as these issues might affect the reliability of cross-validation estimates.  
+Both likelihood ratio test and lower AIC value suggest that the simple model is a better fit in evaluating the success of economic sanctions. The out-sample cross-validation also suggests that the simple model result in higher accuracy. However, the warning suggests that we should interpret the out-of-sample accuracy with caution, as these issues might affect the reliability of cross-validation estimates.  
 
 ### b.
 
@@ -107,18 +106,14 @@ For the better performing of your two models, choose a particular predictor vari
 ```{r}
 # Scenario 
 X.low <- cbind(
-  log_gnprat = mean(log(dat$gnprat)), 
   trade = mean(dat$trade), 
   tarcst = mean(dat$tarcst),
-  cost = median(dat$cost),  
   coop = 1 
 )
 
 X.high <- cbind(
-  log_gnprat = mean(log(dat$gnprat)), 
   trade = mean(dat$trade), 
   tarcst = mean(dat$tarcst),
-  cost = median(dat$cost),  
   coop = 4 
 )
 
@@ -126,9 +121,9 @@ X.high <- cbind(
 
 ```{r}
 # Simulate coefficient draws for uncertainty estimation
-draws <- mvrnorm(1000, c(coef(mod1), mod1$zeta), solve(mod1$Hessian))
-B <- draws[, 1:length(coef(mod1))]  # Extract coefficients
-Taus <- draws[, (length(coef(mod1)) + 1):ncol(draws)]  # Extract cutpoints
+draws <- mvrnorm(1000, c(coef(mod2), mod2$zeta), solve(mod2$Hessian))
+B <- draws[, 1:length(coef(mod2))]  # Extract coefficients
+Taus <- draws[, (length(coef(mod2)) + 1):ncol(draws)]  # Extract cutpoints
 
 # Predicted probabilities for coop = 1 and coop = 4
 # Compute predicted probabilities for each class
@@ -173,11 +168,11 @@ Use the same linear specification as in (b) but fit an OLS model. Is the ordered
 
 ```{r}
 dat$result <- as.numeric(dat$result)
-lm_model <- lm(result ~ log(gnprat) + trade + tarcst + cost + coop, 
+lm_model <- lm(result ~ trade + tarcst  + coop, 
              data = dat)
 
 cat("AIC Value for lm model:", AIC(lm_model), "\n")
-cat("AIC Value for ordinal logit model:", AIC(mod1), "\n")
+cat("AIC Value for ordinal logit model:", AIC(mod2), "\n")
 ```
 
 Significantly higher AIC value of the OLS model suggests that the ordered logit is a better fit in comparison to the OLS model.
@@ -189,30 +184,58 @@ Use the same linear specification as in (b) but fit the model as a multinomial l
 
 
 ```{r}
-mnl_mod <-multinom(as.factor(result) ~  log(gnprat) +trade + tarcst + cost + coop,
+mnl_mod <- multinom(as.factor(result) ~  trade + tarcst + coop,
                       Hess=T, model=T,data=dat, maxit=200)
 
 
-ll_ratio_stat2 <- -2 * (logLik(mod1) - logLik(mnl_mod))
-df2 <- length(coef(mnl_mod)) - length(coef(mod1))
+ll_ratio_stat2 <- -2 * (logLik(mod2) - logLik(mnl_mod))
+df2 <- length(coef(mnl_mod)) - length(coef(mod2))
 p_value2 <- 1 - pchisq(ll_ratio_stat2, df2)
 cat("Likelihood Ratio Statistic:", ll_ratio_stat2, "\n")
 cat("P-vale:", p_value2)
 ```
-The parallel regression assumption holds because the likelihood ratio test does not indicate significant improvement when using the more flexible multinomial logit model.
+The parallel regression assumption holds because the likelihood ratio suggest that the more flexible multinomial logit did not have significant improvement.
 
 ### e.
 
 Using the scenario you devised in (b), provide an interpretation of the MNL version of the model that you just fit. This time use the marginaleffects library.
 
 ```{r}
+# Compute first differences for changing "coop" from 1 to 4
+fd <- comparisons(
+    mnl_mod,
+    newdata = datagrid(coop = c(1, 4)),  # Define scenarios
+    variables = "coop",  # Variable to compute first differences
+    type = "probs",
+    contrast = "difference" 
+)
+
+print(fd)
+
+# Default density plot (keeping multiple peaks)
+ggplot(fd, aes(x = estimate, fill = as.factor(group))) +
+  geom_density(alpha = 0.5) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  scale_fill_manual(values = c("black", "red", "blue", "white")) +
+  labs(x = "Change in Predicted Probability",
+       y = "Density",
+       title = "Density Plot of First Differences",
+       fill = "Outcome Category") +
+  theme_minimal()
+
+# Smoothed density plot (adjusting bandwidth)
+ggplot(fd, aes(x = estimate, fill = as.factor(group))) +
+  geom_density(alpha = 0.5, adjust = 2) +  # Increase adjust value for smoother plot
+  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
+  scale_fill_manual(values = c("black", "red", "blue", "white")) +
+  labs(x = "Change in Predicted Probability",
+       y = "Density",
+       title = "Smoothed Density Plot of First Differences",
+       fill = "Outcome Category") +
+  theme_minimal()
+
 
 ```
-
-
-
-
-
 ```{r}
 sessionInfo()
 ```
