@@ -10,14 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-library(MASS)
-library(huxtable)
-library(caret)
-library(ordinal)
-library(nnet)
-library(ggplot2)
-library(marginaleffects)
-library(ggplot2)
+suppressMessages({
+  library(MASS)
+  library(huxtable)
+  library(caret)
+  library(ordinal)
+  library(nnet)
+  library(ggplot2)
+  library(marginaleffects)
+  library(ggeffects)
+})
 
 ```
 
@@ -97,7 +99,10 @@ cat("\nThe average accuracy of the full model:", round(mean(cv_full$results$Accu
 cat("The average accuracy of the simple model:", round(mean(cv_sim$results$Accuracy), 4), "\n")
 
 ```
-Both likelihood ratio test and lower AIC value suggest that the simple model is a better fit in evaluating the success of economic sanctions. The out-sample cross-validation also suggests that the simple model result in higher accuracy. However, the warning suggests that we should interpret the out-of-sample accuracy with caution, as these issues might affect the reliability of cross-validation estimates.  
+Both likelihood ratio test and lower AIC value suggest that the simple model is a better fit in evaluating the success of economic sanctions. The out-sample cross-validation also suggests similar performance with the simple model result in slightly higher accuracy. However, the warning suggests that we should interpret the out-of-sample accuracy with caution, as these issues might affect the reliability of cross-validation estimates.
+
+
+---
 
 ### b.
 
@@ -160,7 +165,7 @@ text(x=0.1, y=6, labels="Pr(MidLow Sanction Success | High Coop) - Pr(MidLow San
 text(x=0.1, y=8, labels="Pr(MidHigh Sanction Success | High Coop) - Pr(MidHigh Sanction Success | Low Coop)", cex=0.6, adj=0, col="blue")
 text(x=0.1, y=10, labels="Pr(High Sanction Success | High Coop) - Pr(High Sanction Success| Low Coop)", cex=0.6, adj=0, col="red")
 ```
-
+---
 
 ### c
 
@@ -177,6 +182,8 @@ cat("AIC Value for ordinal logit model:", AIC(mod2), "\n")
 
 Significantly higher AIC value of the OLS model suggests that the ordered logit is a better fit in comparison to the OLS model.
 
+---
+
 ### d.
 
 Use the same linear specification as in (b) but fit the model as a multinomial logit. Evaluate whether the parallel regressions assumption holds for the ordered logit model. The multinom() function in the nnet library fits multinomial logit. You might also consider the mlogit library.
@@ -184,10 +191,11 @@ Use the same linear specification as in (b) but fit the model as a multinomial l
 
 
 ```{r}
-mnl_mod <- multinom(as.factor(result) ~  trade + tarcst + coop,
+dat$result <- as.factor(dat$result)
+mnl_mod <- multinom(result ~  trade + tarcst + coop,
                       Hess=T, model=T,data=dat, maxit=200)
 
-
+# Likelihood Ratio Test
 ll_ratio_stat2 <- -2 * (logLik(mod2) - logLik(mnl_mod))
 df2 <- length(coef(mnl_mod)) - length(coef(mod2))
 p_value2 <- 1 - pchisq(ll_ratio_stat2, df2)
@@ -196,46 +204,48 @@ cat("P-vale:", p_value2)
 ```
 The parallel regression assumption holds because the likelihood ratio suggest that the more flexible multinomial logit did not have significant improvement.
 
+---
+
 ### e.
 
 Using the scenario you devised in (b), provide an interpretation of the MNL version of the model that you just fit. This time use the marginaleffects library.
+
+The marginaleffects function wasn't working so these are the alternative I tried.
+
+```{r}
+ggeff <- ggpredict(mnl_mod, terms = "coop")
+print(ggeff)
+```
+
 
 ```{r}
 # Compute first differences for changing "coop" from 1 to 4
 fd <- comparisons(
     mnl_mod,
-    newdata = datagrid(coop = c(1, 4)),  # Define scenarios
-    variables = "coop",  # Variable to compute first differences
+    newdata = datagrid(coop = c(1, 2, 3, 4)),  # Define scenarios
+    variables = "coop",
     type = "probs",
-    contrast = "difference" 
+    contrast = "pairwise" 
 )
 
-print(fd)
 
-# Default density plot (keeping multiple peaks)
-ggplot(fd, aes(x = estimate, fill = as.factor(group))) +
-  geom_density(alpha = 0.5) +
-  geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
-  scale_fill_manual(values = c("black", "red", "blue", "white")) +
-  labs(x = "Change in Predicted Probability",
-       y = "Density",
-       title = "Density Plot of First Differences",
-       fill = "Outcome Category") +
-  theme_minimal()
-
-# Smoothed density plot (adjusting bandwidth)
 ggplot(fd, aes(x = estimate, fill = as.factor(group))) +
   geom_density(alpha = 0.5, adjust = 2) +  # Increase adjust value for smoother plot
   geom_vline(xintercept = 0, linetype = "dashed", color = "black") +
   scale_fill_manual(values = c("black", "red", "blue", "white")) +
   labs(x = "Change in Predicted Probability",
-       y = "Density",
-       title = "Smoothed Density Plot of First Differences",
+       title = "Density Plot of First Differences",
        fill = "Outcome Category") +
-  theme_minimal()
-
-
+  theme_minimal() + 
+  scale_x_continuous(limits = c(-0.5, 0.5), expand = c(0, 0))  
 ```
+---
+
+## Use of ChatGPT and other generative AI tools
+
+I certify that I did not use any LLM or generative AI tool in this assignment!
+
+
 ```{r}
 sessionInfo()
 ```
